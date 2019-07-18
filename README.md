@@ -12,6 +12,7 @@
 build environment: Windows 10, MSYS2 and MINGW-w64
 
 1. configure
+
 do `configure` and `make` in mintty (MSYS2/MINGW-w64).
 
 ```sh
@@ -32,6 +33,7 @@ make -j
 ```
 
 4. run
+
 run emacs in cmd.exe or powershell.exe.
 
 ```
