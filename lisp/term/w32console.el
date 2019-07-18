@@ -27,28 +27,49 @@
 ;; W32 uses different color indexes than standard:
 
 (defvar w32-tty-standard-colors
-  '(("black"          0     0     0     0)
-    ("blue"           1     0     0 52480) ; MediumBlue
-    ("green"          2  8704 35584  8704) ; ForestGreen
-    ("cyan"           3     0 52736 53504) ; DarkTurquoise
-    ("red"            4 45568  8704  8704) ; FireBrick
-    ("magenta"        5 35584     0 35584) ; DarkMagenta
-    ("brown"          6 40960 20992 11520) ; Sienna
-    ("lightgray"      7 48640 48640 48640) ; Gray
-    ("darkgray"       8 26112 26112 26112) ; Gray40
-    ("lightblue"      9     0     0 65535) ; Blue
-    ("lightgreen"    10     0 65535     0) ; Green
-    ("lightcyan"     11     0 65535 65535) ; Cyan
-    ("lightred"      12 65535     0     0) ; Red
-    ("lightmagenta"  13 65535     0 65535) ; Magenta
-    ("yellow"        14 65535 65535     0) ; Yellow
-    ("white"         15 65535 65535 65535))
+  (if w32con-use-vt-sequences
+      '(("black"          0     0     0     0)
+        ("red"            1 45568  8704  8704) ; FireBrick
+        ("green"          2  8704 35584  8704) ; ForestGreen
+        ("brown"          3 40960 20992 11520) ; Sienna
+        ("blue"           4     0     0 52480) ; MediumBlue
+        ("magenta"        5 35584     0 35584) ; DarkMagenta
+        ("cyan"           6     0 52736 53504) ; DarkTurquoise
+        ("lightgray"      7 48640 48640 48640) ; Gray
+        ("darkgray"       8 26112 26112 26112) ; Gray40
+        ("lightred"       9 65535     0     0) ; Red
+        ("lightgreen"    10     0 65535     0) ; Green
+        ("yellow"        11 65535 65535     0) ; Yellow
+        ("lightblue"     12     0     0 65535) ; Blue
+        ("lightmagenta"  13 65535     0 65535) ; Magenta
+        ("lightcyan"     14     0 65535 65535) ; Cyan
+        ("white"         15 65535 65535 65535))
+    '(("black"          0     0     0     0)
+      ("blue"           1     0     0 52480) ; MediumBlue
+      ("green"          2  8704 35584  8704) ; ForestGreen
+      ("cyan"           3     0 52736 53504) ; DarkTurquoise
+      ("red"            4 45568  8704  8704) ; FireBrick
+      ("magenta"        5 35584     0 35584) ; DarkMagenta
+      ("brown"          6 40960 20992 11520) ; Sienna
+      ("lightgray"      7 48640 48640 48640) ; Gray
+      ("darkgray"       8 26112 26112 26112) ; Gray40
+      ("lightblue"      9     0     0 65535) ; Blue
+      ("lightgreen"    10     0 65535     0) ; Green
+      ("lightcyan"     11     0 65535 65535) ; Cyan
+      ("lightred"      12 65535     0     0) ; Red
+      ("lightmagenta"  13 65535     0 65535) ; Magenta
+      ("yellow"        14 65535 65535     0) ; Yellow
+      ("white"         15 65535 65535 65535)))
 "A list of VGA console colors, their indices and 16-bit RGB values.")
 
 (declare-function x-setup-function-keys "term/common-win" (frame))
 (declare-function get-screen-color "w32console.c" ())
 (declare-function w32-get-console-codepage "w32proc.c" ())
 (declare-function w32-get-console-output-codepage "w32proc.c" ())
+
+(defun w32con-rgb-convert-to-16bit (prim)
+  "Convert an 8-bit primary color value PRIM to a corresponding 16-bit value."
+  (logior prim (lsh prim 8)))
 
 (defun terminal-init-w32console ()
   "Terminal initialization function for w32 console."
@@ -69,13 +90,55 @@
           ;; Since we changed the terminal encoding, we need to repeat
           ;; the test for Unicode quotes being displayable.
           (startup--setup-quote-display)))
-  (let* ((colors w32-tty-standard-colors)
+  (let* ((ncolors (display-color-cells))
+         (colors w32-tty-standard-colors)
          (color (car colors)))
     (tty-color-clear)
     (while colors
       (tty-color-define (car color) (cadr color) (cddr color))
       (setq colors (cdr colors)
-            color (car colors))))
+            color (car colors)
+            ncolors (1- ncolors)))
+    ;; We've exhausted the colors from `colors'.  If there
+    ;; are more colors to support, compute them now.
+    (when (> ncolors 0)
+      (cond
+       ((= ncolors 16777200) ; 24-bit xterm
+        ;; all named tty colors
+        (let ((idx (length w32-tty-standard-colors)))
+          (mapc (lambda (color)
+                  (unless (assoc (car color) w32-tty-standard-colors)
+                    (tty-color-define (car color) idx (cdr color))
+                    (setq idx (1+ idx))))
+                color-name-rgb-alist)))
+       ((= ncolors 240)        ; 256-color xterm
+        ;; 216 non-gray colors first
+        (let ((r 0) (g 0) (b 0))
+          (while (> ncolors 24)
+            ;; This and other formulas taken from 256colres.pl and
+            ;; 88colres.pl in the xterm distribution.
+            (tty-color-define (format "color-%d" (- 256 ncolors))
+                              (- 256 ncolors)
+                              (mapcar #'w32con-rgb-convert-to-16bit
+                                      (list (if (zerop r) 0 (+ (* r 40) 55))
+                                            (if (zerop g) 0 (+ (* g 40) 55))
+                                            (if (zerop b) 0 (+ (* b 40) 55)))))
+
+            (setq b (1+ b))
+            (if (> b 5)
+                (setq g (1+ g)
+                      b 0))
+            (if (> g 5)
+                (setq r (1+ r)
+                      g 0))
+            (setq ncolors (1- ncolors))))
+        ;; Now the 24 gray colors
+        (while (> ncolors 0)
+          (setq color (w32con-rgb-convert-to-16bit (+ 8 (* (- 24 ncolors) 10))))
+          (tty-color-define (format "color-%d" (- 256 ncolors))
+                            (- 256 ncolors)
+                            (list color color color))
+          (setq ncolors (1- ncolors)))))))
   (clear-face-cache)
   ;; Figure out what are the colors of the console window, and set up
   ;; the background-mode correspondingly.

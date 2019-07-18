@@ -52,6 +52,10 @@ static void w32con_set_terminal_modes (struct terminal *t);
 static void w32con_update_begin (struct frame * f);
 static void w32con_update_end (struct frame * f);
 static WORD w32_face_attributes (struct frame *f, int face_id);
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+static void turn_on_face (struct frame *, int face_id);
+static void turn_off_face (struct frame *, int face_id);
+#endif
 
 static COORD	cursor_coords;
 static HANDLE	prev_screen, cur_screen;
@@ -306,7 +310,10 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
                      register int len)
 {
   DWORD r;
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#else
   WORD char_attr;
+#endif
   LPCSTR conversion_buffer;
   struct coding_system *coding;
 
@@ -332,8 +339,12 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
 	if (string[n].face_id != face_id)
 	  break;
 
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+      turn_on_face (f, face_id);
+#else
       /* Turn appearance modes of the face of the run on.  */
       char_attr = w32_face_attributes (f, face_id);
+#endif
 
       if (n == len)
 	/* This is the last run.  */
@@ -341,6 +352,15 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
       conversion_buffer = (LPCSTR) encode_terminal_code (string, n, coding);
       if (coding->produced > 0)
 	{
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+	  if (!WriteConsole (cur_screen, conversion_buffer,
+			     coding->produced, &r, NULL))
+	    {
+	      printf ("Failed writing console characters: %lu\n",
+		      GetLastError ());
+	      fflush (stdout);
+	    }
+#else
 	  /* Set the attribute for these characters.  */
 	  if (!FillConsoleOutputAttribute (cur_screen, char_attr,
 					   coding->produced, cursor_coords,
@@ -360,12 +380,17 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
 		      GetLastError ());
 	      fflush (stdout);
 	    }
+#endif
 
 	  cursor_coords.X += coding->produced;
 	  w32con_move_cursor (f, cursor_coords.Y, cursor_coords.X);
 	}
       len -= n;
       string += n;
+
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+      turn_off_face (f, face_id);
+#endif
     }
 }
 
@@ -507,6 +532,12 @@ w32con_set_terminal_modes (struct terminal *t)
   /* Initialize input mode: interrupt_input off, no flow control, allow
      8 bit character input, standard quit char.  */
   Fset_input_mode (Qnil, Qnil, make_number (2), Qnil);
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+  DWORD mode;
+  GetConsoleMode (cur_screen, &mode);
+  mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  SetConsoleMode (cur_screen, mode);
+#endif
 }
 
 /* hmmm... perhaps these let us bracket screen changes so that we can flush
@@ -650,6 +681,108 @@ w32_face_attributes (struct frame *f, int face_id)
 
   return char_attr;
 }
+
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+static void
+turn_on_face (struct frame *f, int face_id)
+{
+  struct face *face = FACE_FROM_ID (f, face_id);
+  unsigned long fg = face->foreground;
+  unsigned long bg = face->background;
+  struct tty_display_info *tty = FRAME_TTY (f);
+  DWORD r;
+
+  if (face->tty_reverse_p) /* inverse_video needs more modifications */
+    WriteConsole (cur_screen, "[7m", 4, &r, NULL);
+
+  if (face->tty_bold_p)
+    WriteConsole (cur_screen, "[1m", 4, &r, NULL);
+
+  if (face->tty_underline_p)
+    WriteConsole (cur_screen, "[4m", 4, &r, NULL);
+
+  if (tty->TN_max_colors > 0)
+    {
+      if (tty->TN_max_colors == 16 || tty->TN_max_colors == 256)
+	{
+	  if (fg >= 0 && fg < 8)
+	    {
+	      char p[10];
+	      snprintf(p, 10, "[%lum", fg + 30);
+	      WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+	    }
+	  if (fg >= 8 && fg < 16)
+	    {
+	      char p[10];
+	    snprintf(p, 10, "[%lum", fg - 8 + 90);
+	    WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+	    }
+	  if (fg >= 16 && fg < 256)
+	    {
+	      char p[20];
+	      snprintf(p, 20, "[38;5;%lum", fg);
+	      WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+	    }
+	  if (bg >= 0 && bg < 8)
+	    {
+	      char p[10];
+	      snprintf(p, 10, "[%lum", bg + 40);
+	      WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+	    }
+	  if (bg >= 8 && bg < 16)
+	    {
+	      char p[10];
+	      snprintf(p, 10, "[%lum", bg - 8 + 100);
+	      WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+	    }
+	  if (bg>= 16 && bg < 256)
+	    {
+	      char p[20];
+	      snprintf(p, 20, "[48;5;%lum", bg);
+	      WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+	    }
+	}
+
+      else if (tty->TN_max_colors == 16777216)
+	{
+	  char p[30];
+	  snprintf(p,30, "[38;2;%lu;%lu;%lum", fg/65536, (fg/256)&255, fg&255);
+	  WriteConsole (cur_screen, p, strlen(p), &r, NULL);
+
+	  char q[30];
+	  snprintf(q, 30, "[48;2;%lu;%lu;%lum", bg/65536, (bg/256)&255, bg&255);
+	  WriteConsole (cur_screen, q, strlen(q), &r, NULL);
+	}
+    }
+}
+
+static void
+turn_off_face (struct frame *f, int face_id)
+{
+  struct face *face = FACE_FROM_ID (f, face_id);
+  struct tty_display_info *tty = FRAME_TTY (f);
+  DWORD r;
+
+  if (face->tty_bold_p
+      || face->tty_italic_p
+      || face->tty_reverse_p
+      || face->tty_underline_p)
+    {
+      WriteConsole (cur_screen, "[m", 3, &r, NULL);
+    }
+
+
+  /* Switch back to default colors.  */
+  if (tty->TN_max_colors > 0
+      && ((face->foreground != FACE_TTY_DEFAULT_COLOR
+	   && face->foreground != FACE_TTY_DEFAULT_FG_COLOR)
+	  || (face->background != FACE_TTY_DEFAULT_COLOR
+	      && face->background != FACE_TTY_DEFAULT_BG_COLOR)))
+    {
+      WriteConsole (cur_screen, "[39;49m", 8, &r, NULL);
+    }
+}
+#endif
 
 void
 initialize_w32_display (struct terminal *term, int *width, int *height)
@@ -854,6 +987,15 @@ A value of nil means use the current console window dimensions; this
 may be preferable when working directly at the console with a large
 scroll-back buffer.  */);
   w32_use_full_screen_buffer = 0;
+
+  DEFVAR_BOOL ("w32con-use-vt-sequences",
+	       w32con_use_vt_sequences,
+	       doc: /* Non-nil means w32console uses virtual terminal sequenses rather than w32 console API.  */);
+#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+  w32con_use_vt_sequences = 1;
+#else
+  w32con_use_vt_sequences = 0;
+#endif
 
   defsubr (&Sset_screen_color);
   defsubr (&Sget_screen_color);
