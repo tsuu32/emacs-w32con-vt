@@ -527,6 +527,9 @@ w32con_set_terminal_modes (struct terminal *t)
 
   SetConsoleActiveScreenBuffer (cur_screen);
 
+  // https://stackoverflow.com/questions/42213161/console-mouse-input-not-working
+  SetConsoleMode (keyboard_handle, ENABLE_EXTENDED_FLAGS);
+    
   SetConsoleMode (keyboard_handle, ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT);
 
   /* Initialize input mode: interrupt_input off, no flow control, allow
