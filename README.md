@@ -6,14 +6,15 @@
 - Windows Terminal will come.
 - Vim already support truecolor in Windows Console.(https://github.com/vim/vim/commit/cafafb381a04e33f3ce9cd15dd9f94b73226831f)
 
-## Try
-**Note**: This is experimental.
+## Build
+*Note*: This is **experimental**.
 
 build environment: Windows 10, MSYS2 and MINGW-w64
 
+Steps:
 1. configure
 
-do `configure` and `make` in mintty (MSYS2/MINGW-w64).
+do `configure` in mintty (MSYS2/MINGW-w64).
 
 ```sh
 ./autogen.sh
@@ -46,9 +47,9 @@ with zenburn theme
 ![](emacs-zenburn-w32con-256color.jpg)
 
 ## Bug
-- loading no theme make bug at W32CONVT24BIT
+- Starting emacs with loading no theme cause bug at W32CONVT24BIT
 -
 
 ## future work
 - use escape sequences more (not only color)
--
+- autoconf support
