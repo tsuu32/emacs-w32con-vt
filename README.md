@@ -14,7 +14,7 @@ build environment: Windows 10, MSYS2 and MINGW-w64
 Steps:
 1. configure
 
-do `configure` in mintty (MSYS2/MINGW-w64).
+do `configure` in *mintty (MSYS2/MINGW-w64)*.
 
 ```sh
 ./autogen.sh
@@ -35,7 +35,7 @@ make -j
 
 4. run
 
-run emacs in cmd.exe or powershell.exe.
+run emacs in *cmd.exe* or *powershell.exe*.
 
 ```
 path\to\src\emacs.exe -nw
