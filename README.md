@@ -38,7 +38,8 @@ You can set `16` or `256`, `24bit` for `NUMBER`.
 make
 ```
 
-4. Run Emacs in *cmd.exe* or *powershell.exe*:
+## Usage
+Run Emacs in *cmd.exe* or *powershell.exe*:
 
 ```
 path\to\emacs-w32con-vt\src\emacs.exe -nw
