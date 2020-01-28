@@ -47,7 +47,7 @@ path\to\emacs-w32con-vt\src\emacs.exe -nw
 ## Screenshot
 With [zenburn theme](https://github.com/bbatsov/zenburn-emacs).
 
-![](emacs-zenburn-w32con-256color.jpg)
+![](emacs-zenburn-vt-24bitcolor.png)
 
 ## Bug
 - Starting emacs with no theme cause buggy at 24bit color.
