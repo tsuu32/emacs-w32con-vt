@@ -8,48 +8,51 @@
 
 ## Build
 *Note*: This is **experimental**.
+Current implementation is based on Emacs 26.3.
 
-build environment: Windows 10, MSYS2 and MINGW-w64
+Prerequisites:
+- Windows 10
+- MSYS2 and MINGW-w64
+- Dependancies are installed (See https://github.com/tsuu32/emacs-w32con-vt/blob/master/nt/INSTALL.W64)
 
 Steps:
-1. configure
-
-do `configure` in *mintty (MSYS2/MINGW-w64)*.
+1. Clone this repo and `./autogen.sh` to generate `configure` script in *MSYS2 bash*:
 
 ```sh
+git clone https://github.com/tsuu32/emacs-w32con-vt.git
+cd emacs-w32con-vt
 ./autogen.sh
-./configure --without-dbus
 ```
 
-2. add `-DW32CONVT256COLOR` to CFLAGS (to src/Makefile)
+2. Run `configure` with `--with-w32-vt-color=NUMBER` option:
 
 ```c
-CFLAGS = -g3 -O2 -gdwarf-2 -DW32CONVT256COLOR
+./configure --without-dbus --with-w32-vt-color=24bit
 ```
 
-3. make
+You can set `16` or `256`, `24bit` for `NUMBER`.
+
+3. Run Make:
 
 ```sh
-make -j
+make
 ```
 
-4. run
-
-run emacs in *cmd.exe* or *powershell.exe*.
+4. Run Emacs in *cmd.exe* or *powershell.exe*:
 
 ```
-path\to\src\emacs.exe -nw
+path\to\emacs-w32con-vt\src\emacs.exe -nw
 ```
 
-## screenshot
-with zenburn theme
+## Screenshot
+With [zenburn theme](https://github.com/bbatsov/zenburn-emacs).
 
 ![](emacs-zenburn-w32con-256color.jpg)
 
 ## Bug
-- Starting emacs with loading no theme cause bug at W32CONVT24BIT
--
+- Starting emacs with no theme cause buggy at 24bit color.
 
-## future work
-- use escape sequences more (not only color)
-- autoconf support
+## Future work
+- [x] Autoconf support.
+- [ ] Use escape sequences more (not only color).
+- [ ] Etc.

@@ -444,6 +444,22 @@ AC_ARG_ENABLE(ns-self-contained,
    EN_NS_SELF_CONTAINED=$enableval,
    EN_NS_SELF_CONTAINED=yes)
 
+AC_ARG_WITH([w32-vt-color],[AS_HELP_STRING([--with-w32-vt-color=NUMBER],
+ [use VT sequences for w32 console (NUMBER one of: 16 or 156, 24bit, truecolor, no)])],
+[	  case "${withval}" in
+	    no )	val=no ;;
+	    16 )	val=16 ;;
+	    256 )	val=256 ;;
+	    24bit | truecolor )	val=24bit ;;
+	    * )
+AC_MSG_ERROR(['--with-vt-color=$withval' is invalid;
+this option's value should be 'no', '16', '256', '24bit' or 'truecolor'.
+'24bit' and 'truecolor' are synonyms.])
+	    ;;
+	  esac
+	  with_w32_vt_color=$val
+])
+
 locallisppathset=no
 AC_ARG_ENABLE(locallisppath,
 [AS_HELP_STRING([--enable-locallisppath=PATH],
@@ -1025,15 +1041,16 @@ AS_IF([test $gl_gcc_warnings = no],
   fi
 
   AC_DEFINE([GCC_LINT], [1], [Define to 1 if --enable-gcc-warnings.])
-  AC_DEFINE([GNULIB_PORTCHECK], [1], [enable some gnulib portability checks])
-  AH_VERBATIM([GNULIB_PORTCHECK_FORTIFY_SOURCE],
-  [/* Enable compile-time and run-time bounds-checking, and some warnings,
-      without upsetting glibc 2.15+. */
-   #if (defined GNULIB_PORTCHECK && !defined _FORTIFY_SOURCE \
-        && defined __OPTIMIZE__ && __OPTIMIZE__)
-   # define _FORTIFY_SOURCE 2
-   #endif
-  ])
+  AS_IF([test $gl_gcc_warnings = yes],
+    [AC_DEFINE([GNULIB_PORTCHECK], [1], [enable some gnulib portability checks])
+     AH_VERBATIM([GNULIB_PORTCHECK_FORTIFY_SOURCE],
+     [/* Enable compile-time and run-time bounds-checking, and some warnings,
+	 without upsetting glibc 2.15+. */
+      #if (defined GNULIB_PORTCHECK && !defined _FORTIFY_SOURCE \
+	   && defined __OPTIMIZE__ && __OPTIMIZE__)
+      # define _FORTIFY_SOURCE 2
+      #endif
+     ])])
  ])
 
 # clang is picky about these regardless of whether
@@ -2059,6 +2076,13 @@ if test "${opsys}" = "mingw32"; then
     AC_MSG_ERROR([the Windows API headers are too old to support this build.])
   fi
   HAVE_W32=${emacs_cv_w32api}
+  case "${with_w32_vt_color}" in
+    16 ) AC_DEFINE(USE_W32VT16COLOR, 1, [Define to use VT sequences for 16 colors.]) ;;
+    256 ) AC_DEFINE(USE_W32VT256COLOR, 1, [Define to use VT sequences for 256 colors.]) ;;
+    24bit ) AC_DEFINE(USE_W32VT24BITCOLOR, 1, [Define to use VT sequences for 24bit colors.]) ;;
+    no ) ;;
+    * ) ;;
+  esac
 fi
 
 FIRSTFILE_OBJ=
