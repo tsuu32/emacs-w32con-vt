@@ -53,6 +53,6 @@ With [zenburn theme](https://github.com/bbatsov/zenburn-emacs).
 - Starting emacs with no theme cause buggy at 24bit color.
 
 ## Future work
-[ ] Use escape sequences more (not only color).
-[x] Autoconf support.
-[ ] Etc.
+- [x] Autoconf support.
+- [ ] Use escape sequences more (not only color).
+- [ ] Etc.
