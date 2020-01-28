@@ -52,7 +52,7 @@ static void w32con_set_terminal_modes (struct terminal *t);
 static void w32con_update_begin (struct frame * f);
 static void w32con_update_end (struct frame * f);
 static WORD w32_face_attributes (struct frame *f, int face_id);
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
 static void turn_on_face (struct frame *, int face_id);
 static void turn_off_face (struct frame *, int face_id);
 #endif
@@ -310,7 +310,7 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
                      register int len)
 {
   DWORD r;
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
 #else
   WORD char_attr;
 #endif
@@ -339,7 +339,7 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
 	if (string[n].face_id != face_id)
 	  break;
 
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
       turn_on_face (f, face_id);
 #else
       /* Turn appearance modes of the face of the run on.  */
@@ -352,7 +352,7 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
       conversion_buffer = (LPCSTR) encode_terminal_code (string, n, coding);
       if (coding->produced > 0)
 	{
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
 	  if (!WriteConsole (cur_screen, conversion_buffer,
 			     coding->produced, &r, NULL))
 	    {
@@ -388,7 +388,7 @@ w32con_write_glyphs (struct frame *f, register struct glyph *string,
       len -= n;
       string += n;
 
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
       turn_off_face (f, face_id);
 #endif
     }
@@ -535,7 +535,7 @@ w32con_set_terminal_modes (struct terminal *t)
   /* Initialize input mode: interrupt_input off, no flow control, allow
      8 bit character input, standard quit char.  */
   Fset_input_mode (Qnil, Qnil, make_number (2), Qnil);
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
   DWORD mode;
   GetConsoleMode (cur_screen, &mode);
   mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
@@ -685,7 +685,7 @@ w32_face_attributes (struct frame *f, int face_id)
   return char_attr;
 }
 
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
 static void
 turn_on_face (struct frame *f, int face_id)
 {
@@ -994,7 +994,7 @@ scroll-back buffer.  */);
   DEFVAR_BOOL ("w32con-use-vt-sequences",
 	       w32con_use_vt_sequences,
 	       doc: /* Non-nil means w32console uses virtual terminal sequenses rather than w32 console API.  */);
-#if defined(W32CONVT16COLOR) || defined(W32CONVT256COLOR) || defined(W32CONVT24BIT)
+#if defined(USE_W32VT16COLOR) || defined(USE_W32VT256COLOR) || defined(USE_W32VT24BITCOLOR)
   w32con_use_vt_sequences = 1;
 #else
   w32con_use_vt_sequences = 0;
