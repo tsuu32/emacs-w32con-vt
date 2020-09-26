@@ -1,14 +1,17 @@
 # Emacs with 256/true color support in Windows Console
 
+## News
+- 2020/09/26: Update the patch for Emacs 27.1
+
 ## Background
-- Current emacs in Windows Console (`emacs -nw` at cmd.exe) support only 16 colors.
-- Windows Console recently support true color by Virtual Terminal sequences.
-- Windows Terminal will come.
-- Vim already support truecolor in Windows Console.(https://github.com/vim/vim/commit/cafafb381a04e33f3ce9cd15dd9f94b73226831f)
+- Current GNU Emacs in Windows Console (`emacs -nw` at cmd.exe) supports only 16 colors.
+- Windows Console recently supports true color by Virtual Terminal sequences.
+- Windows Terminal also supports Virtual Terminal sequences.
+- Vim already supports truecolor in Windows Console. (See https://github.com/vim/vim/commit/cafafb381a04e33f3ce9cd15dd9f94b73226831f)
 
 ## Build
 *Note*: This is **experimental**.
-Current implementation is based on Emacs 26.3.
+Current implementation is based on Emacs 27.1.
 
 Prerequisites:
 - Windows 10
@@ -26,7 +29,7 @@ cd emacs-w32con-vt
 
 2. Run `configure` with `--with-w32-vt-color=NUMBER` option:
 
-```c
+```sh
 ./configure --without-dbus --with-w32-vt-color=24bit
 ```
 
@@ -41,9 +44,13 @@ make
 ## Usage
 Run Emacs in *cmd.exe* or *powershell.exe*:
 
-```
+```cmd
+rem for cmd.exe
+set PATH=C:\msys64\mingw64\bin;%PATH%
 path\to\emacs-w32con-vt\src\emacs.exe -nw
 ```
+
+You can also run via Windows Terminal.
 
 ## Screenshot
 With [zenburn theme](https://github.com/bbatsov/zenburn-emacs).
@@ -56,4 +63,3 @@ With [zenburn theme](https://github.com/bbatsov/zenburn-emacs).
 ## Future work
 - [x] Autoconf support.
 - [ ] Use escape sequences more (not only color).
-- [ ] Etc.
